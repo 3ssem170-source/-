@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fundamentals of Nursing I – تدريب</title>
+<style>
+:root{--bg:#eef3f2;--card:#fff;--ink:#17292c;--mute:#5d7175;--line:#cfdcdb;--acc:#1b6f7a;--ok:#1f8a5b;--okbg:#dff3e8;--bad:#c4452f;--badbg:#fbe4df}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1c1e;--card:#172a2d;--ink:#e6f0ef;--mute:#9bb2b5;--line:#2c4549;--acc:#5fc0cc;--ok:#5fd09b;--okbg:#17382b;--bad:#ff8a73;--badbg:#3d1f1a}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font:clamp(16px,1.1vw + 11px,20px)/1.6 Tahoma,"Segoe UI",system-ui,sans-serif}
+main{max-width:900px;margin:0 auto;padding:clamp(12px,2.5vw,28px);padding-bottom:150px}
+h1{font-size:22px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:6px 0 16px}.bar i{display:block;height:100%;background:var(--acc);border-radius:3px}
+.small{color:var(--mute);font-size:15px}
+.q,.sent{direction:ltr;text-align:left;font-weight:600;font-size:clamp(18px,1.2vw + 12px,24px);margin:0 0 14px}
+.sent{line-height:2.4}
+.opt{display:block;width:100%;direction:ltr;text-align:left;font:inherit;color:inherit;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;cursor:pointer}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}.opt.no{border-color:var(--bad);background:var(--badbg)}
+.opt[disabled]{opacity:.9}
+.row{display:flex;gap:12px}.row .opt{text-align:center;font-weight:700}
+.slot{display:inline-block;min-width:92px;height:36px;border:0;border-bottom:3px solid var(--acc);margin:0 4px;vertical-align:middle;background:none;color:var(--ink);font:inherit;cursor:pointer;line-height:32px}
+.slot.ok{border-color:var(--ok);color:var(--ok)}.slot.no{border-color:var(--bad);color:var(--bad)}
+.bank{direction:ltr;display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.tile{font:inherit;font-weight:600;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}.tile[disabled]{opacity:.25}
+.btn{display:block;width:100%;font:inherit;font-weight:700;color:#fff;background:var(--acc);border:0;border-radius:12px;padding:13px;margin-top:12px;cursor:pointer}.btn[disabled]{opacity:.4}.btn.g{background:var(--mute)}
+.fb{margin-top:14px;padding:12px 14px;border-radius:12px}.fb.ok{background:var(--okbg)}.fb.no{background:var(--badbg)}
+.w{border-bottom:2px dotted var(--acc);cursor:help}.w.red{color:var(--bad);border-color:var(--bad)}
+#sheet{position:fixed;inset:auto 0 0 0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:16px 20px;display:none;box-shadow:0 -6px 24px #0003}
+.tg{font:inherit;font-size:15px;color:var(--acc);background:none;border:1px solid var(--line);border-radius:20px;padding:4px 14px;cursor:pointer}
+li{margin:6px 0}
+</style></head><body><main id="app"></main><div id="sheet"></div>
+<script>
+const KEY="nursing_v1",DAY=864e5,GAP=[0,1,3,7,14];
+let S={boxes:{},pts:0,red:{}};
+try{S=Object.assign(S,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=i=>document.getElementById(i),app=$("app"),sh=$("sheet");
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const shuf=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1]);
+
+/* ---------- القاموس (المعنى في السياق) ---------- */
+const D={"nosocomial infections":"عدوى المستشفيات","nosocomial infection":"عدوى المستشفيات","nosocomial":"مكتسبة من المستشفى","admission":"الدخول للمستشفى","healthcare-associated infections":"العدوى المرتبطة بالرعاية الصحية","chain of infection":"سلسلة العدوى","pathogen":"كائن ممرض","reservoir":"مستودع العدوى","portal of exit":"منفذ الخروج","portal of entry":"منفذ الدخول","mode of transmission":"طريقة الانتقال","surgical asepsis":"التعقيم الجراحي (التقنية المعقمة)","medical asepsis":"التعقيم الطبي (التقنية النظيفة)","sharps container":"حاوية الأدوات الحادة","negative pressure room":"غرفة الضغط السالب","sterile field":"المجال المعقَّم","sterile":"معقَّم","hand hygiene":"نظافة اليدين","standard precautions":"الاحتياطات القياسية","precaution":"احتياط","precautions":"احتياطات","airborne":"محمول جوًا","droplet":"قطيرات","contact":"تلامس","isolation":"العزل","disinfection":"التطهير","cleaning":"التنظيف","spores":"أبواغ","microorganisms":"كائنات دقيقة","eliminates":"يزيل","localized":"موضعية","redness":"احمرار","fever":"حمى","fatigue":"إرهاق","nausea":"غثيان","sign":"علامة","intrinsic":"داخلية المنشأ (متعلقة بالمريض نفسه)","risk factor":"عامل خطر","chronic illness":"مرض مزمن","extended hospitalization":"إقامة مطوّلة في المستشفى","chemotherapy":"العلاج الكيميائي","urinary catheter":"القسطرة البولية","founder":"مؤسِّسة","modern nursing":"التمريض الحديث","recognized":"معروفة","advocate":"المدافع عن حقوق المريض","educator":"المثقِّف الصحي","caregiver":"مقدّم الرعاية","communicator":"المتواصل","accountability":"المساءلة (المسؤولية أمام الجهة والقانون)","autonomy":"الاستقلالية في القرار والممارسة","advocacy":"الدفاع عن حقوق المريض","counseling":"الإرشاد النفسي","outcome identification":"تحديد النتائج المتوقعة","assessment":"التقييم (جمع البيانات)","diagnosis":"التشخيص","planning":"التخطيط","implementation":"التنفيذ","evaluation":"المتابعة والتقييم","promoting health":"تعزيز الصحة","preventing illness":"الوقاية من المرض","restoring health":"استعادة الصحة","dying":"المحتضرين","elderly":"كبار السن","newborn":"حديثو الولادة","client":"المريض (العميل)","responsible":"مسؤول","professionally":"مهنيًا","legally":"قانونيًا","quality of care":"جودة الرعاية","ana":"الجمعية الأمريكية للتمريض","standards":"معايير","clinical":"سريرية","arrange":"رتّب","order":"الترتيب","replace":"يستبدل","recap":"إعادة غطاء الإبرة","hand washing":"غسل اليدين","soap":"صابون","paper towel":"منشفة ورقية","elbows":"المرفقان","fingertips":"أطراف الأصابع","jewellery":"المجوهرات","sleeves":"الأكمام","warm water":"ماء دافئ","hot water":"ماء ساخن","natural oils":"الزيوت الطبيعية للجلد","inhibits":"يعيق","tap":"الصنبور","maternal mortality":"وفيات الأمهات","disposable":"تُستعمل مرة واحدة","nails":"الأظافر","required":"المطلوبة","equipment":"المعدات","gown":"رداء","mask":"كمامة","gloves":"القفازات","germs":"الجراثيم","bare":"عارية","sink":"الحوض","depleted":"منفد","protects":"يحمي","rights":"حقوق"};
+Object.assign(D,{"vital signs":"العلامات الحيوية","body temperature":"درجة حرارة الجسم","core temperature":"الحرارة المركزية (الأنسجة العميقة)","surface temperature":"الحرارة السطحية (الجلد)","thermoregulation":"تنظيم الحرارة","hypothalamus":"المهاد التحتي (مركز التحكم بالحرارة)","vasodilatation":"توسع الأوعية","vasoconstriction":"تضيق الأوعية","convection":"الحمل (فقد الحرارة بحركة الهواء)","conduction":"التوصيل (فقد الحرارة بالتلامس)","radiation":"الإشعاع","evaporation":"التبخر","fever":"حمى","febrile":"محموم","hyperthermia":"ارتفاع الحرارة الشديد","hypothermia":"انخفاض حرارة الجسم","thermometer":"ميزان الحرارة","pulse":"النبض","pulse rate":"معدل النبض","pulse deficit":"عجز النبض (الفرق بين القمي والكعبري)","pulse pressure":"ضغط النبض (الفرق بين الانقباضي والانبساطي)","stroke volume":"حجم الضربة","cardiac output":"الناتج القلبي","tachycardia":"تسرع القلب (أكثر من 100)","bradycardia":"بطء القلب (أقل من 60)","apical":"قمّي (عند قمة القلب)","radial":"كعبري (الرسغ)","carotid":"سباتي (الرقبة)","palpation":"الجس","auscultation":"الإصغاء بالسماعة","respiration":"التنفس","ventilation":"التهوية (حركة الهواء داخل الرئتين وخارجهما)","diffusion":"الانتشار (تبادل الغازات بين الحويصلات والدم)","perfusion":"التروية (وصول الدم للشعيرات الرئوية)","bradypnea":"بطء التنفس (أقل من 12)","tachypnea":"تسرع التنفس (أكثر من 20)","blood pressure":"ضغط الدم","systolic":"الانقباضي","diastolic":"الانبساطي","hypertension":"ارتفاع ضغط الدم","hypotension":"انخفاض ضغط الدم","orthostatic hypotension":"هبوط الضغط الانتصابي","sphygmomanometer":"جهاز قياس الضغط","stethoscope":"سماعة الطبيب","antipyretics":"خافضات الحرارة","physiological":"فسيولوجية (جسدية)","esteem":"تقدير الذات","self-actualization":"تحقيق الذات","belonging":"الانتماء","needs":"احتياجات","hierarchy":"هرم / تدرج","oxygenation":"الأكسجة","elimination":"الإخراج","sterilization":"التعقيم","endospores":"الأبواغ الداخلية","closed gloving":"ارتداء القفاز المغلق","open gloving":"ارتداء القفاز المفتوح","strict isolation":"العزل الصارم","enteric isolation":"العزل المعوي","vehicle":"وسيط ناقل (طعام، ماء، دم)","carrier":"حامل للميكروب بلا أعراض","n95":"كمامة N95 (للمحمول جوًا)","aiir":"غرفة عزل ضغط سالب","cauti":"عدوى المسالك البولية المرتبطة بالقسطرة","clabsi":"عدوى الدم المرتبطة بالقسطرة المركزية","crimean war":"حرب القرم","diploma":"دبلوم","baccalaureate":"بكالوريوس"});
+const RE=new RegExp("(^|[^A-Za-z-])("+Object.keys(D).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")(?![A-Za-z-])","gi");
+const tm=s=>esc(s).replace(RE,(m,p,w)=>{const k=w.toLowerCase();return p+'<span class="w'+(S.red[k]?" red":"")+'" data-k="'+k+'">'+w+"</span>"});
+function say(t){try{const v=speechSynthesis.getVoices().filter(x=>/^en/i.test(x.lang)),b=v.find(x=>/natural|neural|enhanced|premium|google us|samantha|daniel|ava/i.test(x.name))||v.find(x=>/en-US/i.test(x.lang))||v[0],u=new SpeechSynthesisUtterance(t);if(b){u.voice=b;u.lang=b.lang}else u.lang="en-US";u.rate=.9;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+let TR=false;
+function showW(k){TR=true;S.red[k]=1;document.querySelectorAll('.w[data-k="'+k+'"]').forEach(e=>e.classList.add("red"));
+sh.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><b dir="ltr">'+esc(k)+'</b><button class="tg" id="snd">🔊</button></div><div>🎯 '+D[k]+"</div>";sh.style.display="block";$("snd").onclick=()=>say(k);say(k);save()}
+document.addEventListener("click",e=>{const w=e.target.closest(".w");if(w){showW(w.dataset.k);return}if(!e.target.closest("#sheet"))sh.style.display="none"});
+
+/* ---------- المحتوى ---------- */
+const mq=(id,s,o,x)=>({id,f:id,t:"mcq",s,o:o.map((v,i)=>[v,i==0]),x});
+const TF=(id,s,a,x)=>({id,f:id,t:"tf",s,a,x});
+const FL=(id,s,a,d,x)=>({id,f:id,t:"fill",s,a,d,x});
+const ES=(id,s,a,d,x)=>({id,f:id,t:"essay",s,a,d,x});
+const LEC={
+intro:{t:"Introduction to Nursing",sum:["Nursing is the protection, promotion and optimization of health, prevention of illness and injury, and advocacy.","Florence Nightingale is the founder of modern nursing.","Her training school for nurses opened in London in 1860.","Mary Mahoney was the first African-American professional nurse.","Criteria of a profession: specialized education, body of knowledge, research, code of ethics, autonomy.","Roles of the nurse: caregiver, advocate, educator, communicator, manager, counselor.","Autonomy means independent and self-governing; accountability means responsible professionally and legally.","ANA standards: assessment, diagnosis, outcome identification, planning, implementation, evaluation."],Q:[
+mq("n1","Who is recognized as the founder of modern nursing?",["Florence Nightingale","Mary Mahoney","Mary Adelaide Nutting","Rufaidah bint Sa'ad"],"فلورنس نايتنجيل هي مؤسِّسة التمريض الحديث."),
+mq("n2","Which nurse role means protecting the client's human and legal rights?",["Advocate","Caregiver","Educator","Communicator"],"المدافع عن حقوق المريض (Advocate) يحمي حقوقه الإنسانية والقانونية."),
+mq("n3","Which term means the nurse is responsible, professionally and legally, for the quality of care?",["Accountability","Autonomy","Advocacy","Counseling"],"المساءلة (Accountability) مسؤولية الممرض مهنيًا وقانونيًا عن جودة الرعاية، أما Autonomy فاستقلاله في القرار."),
+ES("n4","Arrange the ANA standards of clinical nursing practice in order.",["Assessment","Diagnosis","Outcome identification","Planning","Implementation","Evaluation"],["Counseling"],"الترتيب: التقييم ← التشخيص ← تحديد النتائج ← التخطيط ← التنفيذ ← التقويم."),
+FL("n5","Nursing practice includes promoting health, preventing illness, restoring health, and care of the _.",["dying"],["elderly","newborn"],"مجالات التمريض الأربعة: تعزيز الصحة، منع المرض، استعادة الصحة، ورعاية المحتضرين."),
+FL("n6","The Nightingale Training School for nurses opened in London in _.",["1860"],["1820","1907"],"افتُتحت مدرسة نايتنجيل لتدريب الممرضات في لندن عام 1860."),
+TF("tn1","Florence Nightingale is the founder of modern nursing.",true,"نايتنجيل مؤسِّسة التمريض الحديث."),
+TF("tn2","Accountability means being independent and self-governing.",false,"هذا تعريف الاستقلالية (Autonomy)؛ المساءلة هي المسؤولية المهنية والقانونية."),
+TF("tn3","The advocate protects the client's rights.",true,"المدافع عن حقوق المريض يحمي حقوقه الإنسانية والقانونية.")]},
+inf:{t:"Infection Prevention & Control",sum:["Nosocomial infection: acquired after hospitalization, more than 48 hours after admission.","Over 50% of HAIs are preventable.","CAUTI is about 30–40% of HAIs and is triggered by urinary catheters.","Chain of infection: pathogen, reservoir, portal of exit, mode of transmission, portal of entry.","Four main routes of transmission: contact, droplet, vehicle, airborne.","Medical asepsis = clean technique (reduces organisms); surgical asepsis = sterile technique (eliminates ALL microorganisms and spores).","Standard precautions apply to ALL patients.","Replace the sharps container when 2/3 to 3/4 full; never recap used needles.","Airborne precautions need a negative pressure room and a fit-tested N95."],Q:[
+mq("i1","Nosocomial infections occur more than how long after admission?",["48 hours","24 hours","72 hours","12 hours"],"العدوى المكتسبة من المستشفى (Nosocomial) تحدث بعد أكثر من 48 ساعة من الدخول."),
+mq("i2","Which technique eliminates ALL microorganisms and spores?",["Surgical asepsis","Medical asepsis","Disinfection","Cleaning"],"التعقيم الجراحي يزيل كل الكائنات الدقيقة وأبواغها، أما التعقيم الطبي فيقلل عددها فقط."),
+FL("i3","Replace the sharps container when _ to 3/4 full.",["2/3"],["1/4","1/2"],"تُستبدل حاوية الأدوات الحادة عندما تمتلئ من ثلثين إلى ثلاثة أرباع."),
+ES("i4","Arrange the chain of infection in the correct order.",["Pathogen","Reservoir","Portal of exit","Mode of transmission","Portal of entry"],["Sterile field","Hand hygiene"],"السلسلة: الكائن الممرض ← المستودع ← منفذ الخروج ← طريقة الانتقال ← منفذ الدخول."),
+mq("i5","Which precaution requires a negative pressure room?",["Airborne","Contact","Droplet","Standard"],"احتياطات الانتقال عبر الهواء (مثل السل والحصبة) تتطلب غرفة ضغط سالب."),
+mq("i6","Which of the following is a localized sign of infection?",["Redness","Fever","Fatigue","Nausea"],"الاحمرار علامة موضعية، أما الحمى والإرهاق والغثيان فأعراض عامة."),
+mq("i7","Which of the following is an intrinsic risk factor for HAIs?",["Chronic illness","Urinary catheter","Chemotherapy","Extended hospitalization"],"المرض المزمن عامل داخلي متعلق بالمريض، أما القسطرة والعلاج الكيميائي وطول الإقامة فعوامل خارجية."),
+mq("i8","Standard precautions apply to which patients?",["All patients regardless of diagnosis","Only patients with known infection","Only surgical patients","Only patients in isolation"],"الاحتياطات القياسية تُطبَّق على جميع المرضى بغض النظر عن التشخيص."),
+TF("ti1","Nosocomial infections occur within 24 hours of admission.",false,"تحدث بعد أكثر من 48 ساعة من الدخول."),
+TF("ti2","Surgical asepsis eliminates all microorganisms and spores.",true,"هذا هو التعقيم الجراحي (التقنية المعقمة)."),
+TF("ti3","Standard precautions apply only to infected patients.",false,"تنطبق على جميع المرضى بغض النظر عن التشخيص.")]},
+hand:{t:"Hand Hygiene",sum:["Hand hygiene means cleaning the hands with soap and water or an alcohol-based hand rub to remove microorganisms.","Ignaz Semmelweis showed that hand washing reduces maternal mortality.","Before washing: keep nails short, remove jewellery, and roll sleeves above the elbows.","Keep wet hands lower than the elbows so water flows toward the fingertips.","Use warm water, not hot, because it removes less of the skin's natural oils.","Dry hands with a clean paper towel, then close the tap with the towel or elbow."],Q:[
+mq("h1","Who showed that hand washing reduces maternal mortality?",["Ignaz Semmelweis","Louis Pasteur","Joseph Lister","Florence Nightingale"],"سيملفايس هو من بيّن أن غسل اليدين يقلل وفيات الأمهات."),
+mq("h2","Which item is part of the required hand washing equipment?",["Disposable paper towel","Sterile gown","Surgical mask","Sterile gloves"],"المعدات: ماء جارٍ نظيف وصابون سائل ومنشفة ورقية."),
+mq("h3","Why keep wet hands lower than the elbows?",["So water flows toward the fingertips","To make water warmer","To save soap","To dry hands faster"],"ليجري الماء من المنطقة الأقل تلوثًا نحو الأكثر تلوثًا."),
+mq("h4","Why use warm water instead of hot water?",["It removes less of the skin's natural oils","It kills more germs","It saves soap","It dries hands faster"],"الماء الدافئ يزيل من زيوت الجلد الطبيعية الواقية أقل من الساخن."),
+mq("h5","Why remove jewellery before washing hands?",["It inhibits good hand washing","It makes water cold","It uses more soap","It dries slowly"],"المجوهرات تعيق غسل اليدين الجيد."),
+mq("h6","How should the tap be closed after drying hands?",["With a paper towel or elbow","With clean bare hands","With a wet hand","With the sleeve"],"يُغلق الصنبور بمنشفة ورقية أو بالكوع لمنع إعادة التلوث."),
+mq("h7","How far from the sink should you stand?",["15–20 cm","5 cm","50 cm","Touching the sink"],"تقف على بعد 15 إلى 20 سم حتى لا يتلوث الزي من الحوض."),
+TF("th1","Warm water removes more natural skin oils than hot water.",false,"الدافئ يزيل أقل من الساخن."),
+TF("th2","Wet hands should be kept lower than the elbows.",true,"ليجري الماء نحو أطراف الأصابع."),
+TF("th3","Close the tap with clean bare hands.",false,"يُغلق بمنشفة ورقية أو بالكوع.")]}
+};
+
+LEC.inf.sum.push("Decontamination levels: cleaning (removes dirt), disinfection (most pathogens, not endospores), sterilization (ALL microbial life).","Golden rules of sterile field: anything unsterile crossing it, wet, dropped on the floor or exposed to air is unsterile.","Droplet: surgical mask within 3 feet; airborne: negative pressure AIIR room (6–12 air changes/hr) and fit-tested N95.","Isolation categories: strict, contact, respiratory, enteric, drainage, blood, and protective isolation.");
+LEC.inf.Q.push(
+mq("ic1","Which gloving technique is used when wearing a sterile surgical gown?",["Closed gloving","Open gloving","Clean gloving","No gloves"],"الارتداء المغلق يُستعمل مع الرداء الجراحي المعقم وتبقى اليدان داخل الكمين، أما المفتوح فللإجراءات الصغرى كالقسطرة."),
+mq("ic2","A sterile item that becomes wet is considered:",["Unsterile","Sterile","Clean","Disinfected"],"من القواعد الذهبية: أي شيء معقم يتبلل أو يلامس غير معقم أو يسقط أرضًا أو يتعرض للهواء يعتبر غير معقم."),
+mq("ic3","Which level destroys ALL microbial life including endospores?",["Sterilization","Disinfection","Cleaning","Medical asepsis"],"التعقيم يقضي على كل أشكال الحياة الميكروبية، والتطهير لا يضمن القضاء على الأبواغ."),
+mq("ic4","Tuberculosis, measles and varicella require which precautions?",["Airborne","Contact","Droplet","Standard only"],"هذه الأمراض تنتقل جوًا فتحتاج غرفة ضغط سالب وكمامة N95."),
+mq("ic5","How many air changes per hour does an AIIR room need?",["6–12","1–2","20–30","3–4"],"غرفة العزل ذات الضغط السالب تحتاج من 6 إلى 12 تغييرًا للهواء في الساعة."),
+mq("ic6","Which site accounts for about 30–40% of HAIs?",["Urinary tract (CAUTI)","Surgical wounds","Bloodstream (CLABSI)","Respiratory tract"],"عدوى المسالك البولية بسبب القسطرة تمثل نحو 30–40% من العدوى المرتبطة بالرعاية."),
+mq("ic7","Which isolation category is used for chickenpox?",["Strict isolation","Enteric isolation","Contact isolation","Blood isolation"],"العزل الصارم لما ينتقل بالهواء والتلامس مثل جدري الماء، والمعوي للكوليرا والسالمونيلا."),
+mq("ic8","Cholera and Salmonella need which isolation?",["Enteric isolation","Strict isolation","Respiratory isolation","Drainage isolation"],"العزل المعوي يمنع العدوى المنتقلة بالبراز بالتلامس المباشر أو غير المباشر."),
+mq("ic9","Which route involves contaminated food, water, drugs or blood?",["Vehicle","Contact","Droplet","Airborne"],"الانتقال بالوسيط يكون عبر مواد ملوثة مثل الطعام (سالمونيلا) والدم (التهاب الكبد)."),
+mq("ic10","Which task uses medical (clean) asepsis?",["Giving a bed bath","Inserting a urinary catheter","Central line insertion","Surgery"],"الحمام في السرير تقنية نظيفة، أما القسطرة والخط المركزي والجراحة فتقنية معقمة."),
+FL("ic11","Airborne precautions require a fit-tested _ respirator before entering the room.",["N95"],["surgical","cloth"],"كمامة N95 المختبرة للملاءمة مطلوبة قبل دخول غرفة العزل الهوائي."),
+TF("tic1","A carrier always shows symptoms of illness.",false,"الحامل لا تظهر عليه أعراض لكنه يحمل الميكروب وقد ينقله."),
+TF("tic2","Hand hygiene is the number one clinical tool to stop the spread of infection.",true,"نظافة اليدين أهم أداة سريرية لإيقاف انتشار العدوى.")
+);
+LEC.intro.Q.push(
+mq("n7","In which war did Nightingale use statistics to show cleanliness lowers mortality?",["Crimean War","World War I","American Civil War","Boer War"],"استعملت نايتنجيل البيانات الإحصائية في حرب القرم لتثبت أن نظافة البيئة تقلل الوفيات."),
+mq("n8","Who is recognized as the first Muslim nurse?",["Rufaidah bint Sa'ad","Mary Mahoney","Florence Nightingale","Virginia Henderson"],"رفيدة بنت سعد تُعرف بأنها أول ممرضة مسلمة، وكانت قائدة ومنظِّمة."),
+mq("n9","Which pathway is a hospital-based apprenticeship?",["Diploma","ADN","BSN","MSN"],"الدبلوم تدريب في المستشفى، وADN في كلية مجتمع، وBSN جامعي."),
+mq("n10","Which pathway is community-college-based and stresses technical skills?",["ADN","Diploma","BSN","DNP"],"ADN برنامج كلية مجتمع يركز المهارات السريرية التقنية."),
+mq("n11","Who defined the unique function of the nurse as helping the individual gain independence?",["Virginia Henderson","Florence Nightingale","Mary Mahoney","Mary Nutting"],"هذا تعريف فيرجينيا هندرسون: مساعدة الفرد على أنشطة الصحة حتى يستقل بأسرع ما يمكن."),
+TF("tn4","The word nurse derives from a Latin word meaning to nourish.",true,"كلمة nurse مشتقة من كلمة لاتينية معناها يغذّي.")
+);
+LEC.needs={t:"Human Needs (Maslow)",sum:["A need is something necessary or desired to maintain life or physical and mental well-being.","Characteristics: universal, interrelated, individualized, dynamic, influenced by multiple factors, not always consciously recognized.","Maslow's levels from base to top: physiological, safety and security, love and belonging, esteem, self-actualization.","Once an essential need is met, the person experiences a need on a higher level.","Physiological needs: oxygen (most essential), water, food, elimination, sleep and rest, activity, sex, temperature regulation.","Nursing: measure intake and output, feed clients, give oxygen, promote rest, turn immobile patients to prevent pressure ulcers.","Safety: hand washing, sterile dressings, night light, explain procedures; belonging: visitors and reassurance; esteem: encourage independence.","The categories are not a rigid checklist; dignity may be urgent during an invasive procedure."],Q:[
+mq("hn1","According to Maslow, which needs must be met first?",["Physiological needs","Safety needs","Esteem needs","Self-actualization"],"الحاجات الفسيولوجية قاعدة الهرم، وبعد إشباعها يظهر المستوى الأعلى."),
+mq("hn2","Fall prevention and infection prevention belong to which level?",["Safety and security","Physiological","Love and belonging","Esteem"],"الوقاية من السقوط والعدوى من حاجات الأمان والحماية."),
+mq("hn3","Which is the most essential of all basic survival needs?",["Oxygen","Water","Food","Sleep"],"الأكسجين أهم الحاجات؛ ينقطع الإنسان عنه دقائق فقط، وعن الماء أيامًا وعن الطعام أسابيع."),
+mq("hn4","Encouraging visitors and phone calls helps meet which need?",["Love and belonging","Esteem","Safety","Self-actualization"],"الزيارات والاتصالات تلبي حاجة الحب والانتماء."),
+mq("hn5","Letting a client perform as much self-care as possible supports:",["Esteem needs","Physiological needs","Safety needs","Belonging needs"],"تشجيع الاستقلال ومكافأة التقدم يعززان تقدير الذات."),
+mq("hn6","Measuring intake and output mainly supports which need?",["Water and fluids","Sleep","Self-actualization","Belonging"],"قياس المأخوذ والخارج ووزن المريض يوميًا من أنشطة تلبية حاجة السوائل."),
+mq("hn7","Which is NOT a characteristic of human needs?",["Rigid and unchanging","Universal","Interrelated","Dynamic"],"الاحتياجات ديناميكية تتغير بالعمر والمرض والظروف."),
+mq("hn8","Primary needs are met to:",["Sustain life","Give quality to life","Gain respect","Reach one's potential"],"الأولية تحفظ الحياة، أما الثانوية فتعطيها جودة."),
+ES("hn9","Arrange Maslow's hierarchy from the base to the top.",["Physiological","Safety and security","Love and belonging","Esteem","Self-actualization"],["Ethics"],"الترتيب من القاعدة: فسيولوجية ← أمان ← حب وانتماء ← تقدير ← تحقيق الذات."),
+FL("hn10","The need for sex is vital to the survival of the _, not of the individual.",["species"],["family","patient"],"الحاجة الجنسية ضرورية لبقاء النوع لا الفرد."),
+TF("thn1","A person in pain will care about appearance before the pain is relieved.",false,"المتألم لا يهتم بمظهره أو علاقاته حتى يزول الألم."),
+TF("thn2","Maslow's categories are a rigid checklist that must be followed in the same order every time.",false,"هي أدوات لفهم المريض وليست قائمة جامدة؛ قد تصبح الكرامة عاجلة أثناء إجراء باضع.")]};
+LEC.vitals={t:"Vital Signs",sum:["Vital signs: temperature, pulse, respirations, blood pressure, pain, and oxygen saturation.","Adult normals: temperature 36.5–37.5°C, pulse 60–100/min, respirations 12–20/min, BP 120/80 mmHg, pulse pressure 30–50.","Body temperature = heat produced − heat lost; the anterior hypothalamus controls heat loss and the posterior controls heat production.","Heat loss: radiation, conduction, convection, evaporation. Fever grades: low 37.3–38, moderate 38.1–39, high 39.1–41; hypothermia is below 35°C.","Pulse sites: temporal, carotid, apical, brachial, radial, ulnar, femoral, popliteal, posterior tibial, dorsalis pedis.","Cardiac output = pulse rate × stroke volume; tachycardia is above 100, bradycardia below 60; never palpate both carotids together.","Bradypnea is below 12 breaths/min and tachypnea above 20; ventilation, diffusion, perfusion are the mechanisms of respiration.","BP = cardiac output × peripheral resistance; hypertension is above 140/90; orthostatic hypotension is a drop of 25 systolic or 10 diastolic."],Q:[
+mq("v1","Surface temperature refers to the temperature of:",["Skin","Brain","Heart","Liver"],"الحرارة السطحية هي حرارة الجلد والأنسجة تحته وتتغير مع البيئة، أما المركزية فللأنسجة العميقة."),
+mq("v2","A patient has a pulse rate of 80/min and a stroke volume of 70 mL. What is the cardiac output?",["5.6 L/min","4.5 L/min","5.0 L/min","6.5 L/min"],"الناتج القلبي = 80 × 70 = 5600 مل/د = 5.6 لتر/د."),
+mq("v3","Tachycardia means:",["Pulse above 100","Pulse below 60","Normal pulse","Irregular pulse"],"تسرع القلب نبض أكثر من 100 في الدقيقة للبالغ، وبطء القلب أقل من 60."),
+mq("v4","Which part of the hypothalamus controls heat loss?",["Anterior","Posterior","Lateral","Medial"],"الأمامي يتحكم بفقدان الحرارة، والخلفي بإنتاجها وحفظها."),
+mq("v5","Heat transfer by air movement, such as a fan, is:",["Convection","Radiation","Conduction","Evaporation"],"الحمل هو فقد الحرارة بحركة الهواء، والتوصيل يكون بالتلامس."),
+mq("v6","Hypothermia is a core temperature below:",["35°C","36.5°C","37.5°C","33°C"],"انخفاض الحرارة هو هبوط الحرارة المركزية عن 35°م (95°ف)."),
+mq("v7","Besides the radial pulse, which site is most commonly used for pulse rate?",["Apical","Carotid","Femoral","Popliteal"],"الكعبري والقمّي أكثر موضعين شيوعًا لتقييم النبض."),
+mq("v8","Pulse deficit is the difference between:",["Apical and radial rates","Systolic and diastolic BP","Pulse and respiratory rates","Pulse rate and stroke volume"],"عجز النبض = القمّي − الكعبري، مثل 92 − 78 = 14."),
+mq("v9","Bradypnea means a respiratory rate:",["Below 12/min","Above 20/min","Of 12–20/min","Absent"],"بطء التنفس أقل من 12، وتسرع التنفس أكثر من 20 في الدقيقة."),
+mq("v10","Movement of O2 and CO2 between the alveoli and red blood cells is:",["Diffusion","Ventilation","Perfusion","Compliance"],"الانتشار هو تبادل الغازات بين الحويصلات والكريات الحمراء."),
+mq("v11","What is the pulse pressure when BP is 120/80 mmHg?",["40 mmHg","20 mmHg","80 mmHg","100 mmHg"],"ضغط النبض = الانقباضي − الانبساطي = 120 − 80 = 40."),
+mq("v12","Orthostatic hypotension is a drop of at least how much in systolic pressure?",["25 mmHg","10 mmHg","40 mmHg","5 mmHg"],"هبوط 25 انقباضي و10 انبساطي عند الانتقال من الاستلقاء للجلوس أو الوقوف."),
+mq("v13","Hypertension is a blood pressure over:",["140/90 mmHg","120/80 mmHg","130/85 mmHg","100/60 mmHg"],"ارتفاع الضغط فوق 140 انقباضي و/أو 90 انبساطي."),
+mq("v14","Which site should NOT be used for an unconscious patient?",["Oral","Axillary","Tympanic","Rectal"],"الفم لا يُستعمل مع فاقد الوعي أو الصرع أو جراحة الفم."),
+ES("v15","Arrange fever grades from lowest to highest.",["Low grade","Moderate grade","High grade","Hyperthermia"],["Hypothermia"],"الدرجات: منخفضة 37.3–38 ← متوسطة 38.1–39 ← عالية 39.1–41 ← فرط الحرارة أكثر من 41."),
+FL("v16","The normal adult respiratory rate is _ breaths per minute.",["12–20"],["6–10","30–40"],"المعدل الطبيعي للتنفس عند البالغ 12 إلى 20 في الدقيقة."),
+TF("tv1","Both carotid pulses may be palpated at the same time.",false,"لا يجوز جس السباتيين معًا لأن الضغط الزائد قد يقطع الدم عن الدماغ."),
+TF("tv2","Body temperature is usually lowest between 1 and 4 am.",true,"الحرارة أقل ما تكون من الواحدة إلى الرابعة فجرًا وترتفع خلال النهار."),
+TF("tv3","Smoking narrows blood vessels and raises blood pressure.",true,"التدخين يسبب تضيق الأوعية فيرتفع الضغط."),
+TF("tv4","A rise in peripheral resistance lowers blood pressure.",false,"ارتفاع المقاومة الطرفية يرفع الضغط (الضغط = الناتج القلبي × المقاومة).")]};
+/* ---------- الجلسة ---------- */
+let queue=[],total=0,res={right:0},cur="";
+function start(k,force){cur=k;MODE="prac";const Q=LEC[k].Q;Q.forEach(q=>q.w=0);const now=Date.now();
+let it=force?[...Q]:Q.filter(q=>((S.boxes[q.f]||{}).due||0)<=now);
+if(!it.length){app.innerHTML='<div class="card"><h1>لا مراجعة مستحقة الآن 🎉</h1><p>كل معلوماتك مجدولة لوقت لاحق.</p><button class="btn" id="px">تدريب إضافي</button><button class="btn g" id="hm">رجوع</button></div>';$("px").onclick=()=>start(k,1);$("hm").onclick=()=>menu(k);return}
+queue=shuf(it).slice(0,12);total=queue.length;res={right:0,errs:0};next()}
+function next(){if(!queue.length)return end();const q=queue.shift();TR=false;({mcq:rMcq,tf:rTf,fill:rFill,essay:rEssay,type:rType})[q.t](q)}
+function shell(h){const p=Math.max(0,Math.min(100,Math.round((total-queue.length-1)/total*100)));app.innerHTML='<div class="small">⭐ '+S.pts+'</div><div class="bar"><i style="width:'+p+'%"></i></div><div class="card">'+h+"</div>"}
+function record(q,ok){const b=S.boxes[q.f]||{box:0},dy=new Date().toDateString();
+if(ok){if(b.last!==dy){b.box=Math.min(4,b.box+1);b.last=dy}}else b.box=Math.max(0,b.box-1);
+b.due=Date.now()+(ok?GAP[b.box]*DAY:0);S.boxes[q.f]=b;
+if(ok&&!q.w)S.pts+=10;if(!ok&&TR)S.pts=Math.max(0,S.pts-5);
+if(ok){if(!q.w&&!q.r)res.right++}else{q.w=1;res.errs++;if(MODE==="prac")queue.splice(Math.min(3,queue.length),0,q)}save()}
+const fb=(q,ok)=>'<div class="fb '+(ok?"ok":"no")+'"><b>'+(ok?"صحيح ✓":"إجابة غير صحيحة")+"</b><div>"+q.x+'</div></div><button class="btn" id="nx">التالي</button>';
+function rMcq(q){const o=shuf(q.o);shell('<p class="q">'+tm(q.s)+"</p>"+o.map((v,i)=>'<button class="opt" data-i="'+i+'">'+esc(v[0])+"</button>").join("")+'<div id="r"></div>');
+const bs=[...app.querySelectorAll(".opt")];bs.forEach(b=>b.onclick=()=>{const ok=o[b.dataset.i][1];bs.forEach((x,i)=>{x.disabled=true;if(o[i][1])x.classList.add("ok")});if(!ok)b.classList.add("no");record(q,ok);$("r").innerHTML=fb(q,ok);$("nx").onclick=next})}
+function rTf(q){shell('<p class="q">'+tm(q.s)+'</p><div class="row"><button class="opt" data-v="1">True</button><button class="opt" data-v="0">False</button></div><div id="r"></div>');
+const bs=[...app.querySelectorAll(".opt")];bs.forEach(b=>b.onclick=()=>{const ok=(b.dataset.v==="1")===q.a;bs.forEach(x=>{x.disabled=true;if((x.dataset.v==="1")===q.a)x.classList.add("ok")});if(!ok)b.classList.add("no");record(q,ok);$("r").innerHTML=fb(q,ok);$("nx").onclick=next})}
+function rFill(q){const parts=q.s.split("_"),n=q.a.length,bank=shuf(q.a.concat(q.d)),pick=Array(n).fill(null);
+let h='<p class="sent">';parts.forEach((p,i)=>{h+=tm(p);if(i<n)h+='<button class="slot"></button>'});
+h+='</p><div class="bank">'+bank.map(w=>'<button class="tile">'+esc(w)+"</button>").join("")+'</div><button class="btn" id="ck" disabled>تحقق</button><div id="r"></div>';shell(h);
+const slots=[...app.querySelectorAll(".slot")],tiles=[...app.querySelectorAll(".tile")];
+const draw=()=>{slots.forEach((s,i)=>s.textContent=pick[i]===null?"":bank[pick[i]]);tiles.forEach((t,i)=>t.disabled=pick.includes(i));$("ck").disabled=pick.includes(null)};
+tiles.forEach((t,i)=>t.onclick=()=>{const k=pick.indexOf(null);if(k>=0){pick[k]=i;draw()}});
+slots.forEach((s,k)=>s.onclick=()=>{pick[k]=null;draw()});
+$("ck").onclick=()=>{let ok=true;pick.forEach((p,k)=>{const g=bank[p]===q.a[k];if(!g)ok=false;slots[k].classList.add(g?"ok":"no");slots[k].disabled=true});tiles.forEach(t=>t.disabled=true);$("ck").style.display="none";record(q,ok);
+$("r").innerHTML=(ok?"":'<p class="small" dir="ltr" style="text-align:left">Correct: '+esc(q.a.join(" / "))+"</p>")+fb(q,ok);$("nx").onclick=next};draw()}
+function rEssay(q){const bank=shuf(q.a.concat(q.d)),pk=[];
+shell('<p class="q">'+tm(q.s)+'</p><div class="bank" id="ans" style="min-height:52px;border:2px dashed var(--line);border-radius:10px;padding:8px"></div><div class="bank">'+bank.map(w=>'<button class="tile">'+esc(w)+"</button>").join("")+'</div><button class="btn" id="ck" disabled>تحقق</button><div id="r"></div>');
+const tiles=[...app.querySelectorAll(".bank")[1].querySelectorAll(".tile")];
+const draw=()=>{$("ans").innerHTML=pk.map((i,n)=>'<button class="tile" data-n="'+n+'">'+(n+1)+". "+esc(bank[i])+"</button>").join("");tiles.forEach((t,i)=>t.disabled=pk.includes(i));$("ck").disabled=!pk.length;$("ans").querySelectorAll(".tile").forEach(b=>b.onclick=()=>{pk.splice(+b.dataset.n,1);draw()})};
+tiles.forEach((t,i)=>t.onclick=()=>{pk.push(i);draw()});
+$("ck").onclick=()=>{const ok=pk.map(i=>bank[i]).join("|")===q.a.join("|");tiles.forEach(t=>t.disabled=true);$("ans").style.pointerEvents="none";$("ck").style.display="none";record(q,ok);
+$("r").innerHTML=(ok?"":'<p class="small" dir="ltr" style="text-align:left">Correct: '+esc(q.a.join(" → "))+"</p>")+fb(q,ok);$("nx").onclick=next};draw()}
+function end(){app.innerHTML='<div class="card"><h1>انتهت الجلسة</h1><p>الإجابات الصحيحة من أول محاولة: <b>'+res.right+" من "+total+"</b> ("+Math.round(res.right/total*100)+'%)</p><p>النقاط: <b>⭐ '+S.pts+'</b></p><p class="small">الأسئلة التي أخطأت فيها تظهر مجددًا قبل غيرها في الجلسة القادمة.</p><button class="btn" id="a">جلسة جديدة</button><button class="btn g" id="b">رجوع</button></div>';$("a").onclick=()=>start(cur);$("b").onclick=()=>menu(cur)}
+
+/* ---------- القوائم ---------- */
+function home(){app.innerHTML='<h1 dir="ltr" style="text-align:left">Fundamentals of Nursing I</h1><p class="small">اضغط أي كلمة إنجليزية في السؤال لترى معناها ونطقها.</p>'+Object.keys(LEC).map(k=>'<button class="opt" data-k="'+k+'"><b>'+LEC[k].t+'</b> <span class="small">· '+LEC[k].Q.length+" سؤال</span></button>").join("");app.querySelectorAll(".opt").forEach(b=>b.onclick=()=>menu(b.dataset.k))}
+function menu(k){cur=k;app.innerHTML='<div class="card"><h1 dir="ltr" style="text-align:left">'+LEC[k].t+'</h1><div class="small">⭐ '+S.pts+'</div><button class="btn" id="tr">تدريب</button><button class="btn" id="sm">ملخص</button><button class="btn g" id="bk">رجوع</button></div>';$("tr").onclick=()=>start(k);$("sm").onclick=()=>summary(k);$("bk").onclick=home}
+function summary(k){app.innerHTML='<div class="card"><h1 dir="ltr" style="text-align:left">'+LEC[k].t+'</h1><ul dir="ltr" style="text-align:left">'+LEC[k].sum.map(x=>"<li>"+tm(x)+"</li>").join("")+'</ul><button class="btn" id="bk">رجوع</button></div>';$("bk").onclick=()=>menu(k)}
+try{speechSynthesis.getVoices()}catch(e){}
+/* ===== الاختبار الشامل ===== */
+S.full=S.full||{};S.exm=S.exm||{};
+let MODE="prac";
+const P=id=>{for(const k in LEC){const q=LEC[k].Q.find(q=>q.id===id);if(q)return q}};
+const EXQ=[P("n1"),P("n2"),P("n3"),P("n8"),P("i1"),P("i2"),P("i6"),P("i7"),P("ic3"),
+mq("e1","Which educator concluded that nursing education needed more financial support, to be given to university schools of nursing?",["Mary Adelaide Nutting","Florence Nightingale","Mary Mahoney","Rufaidah bint Sa'ad"],"ماري أديلايد نوتينج أول أستاذة تمريض في كولومبيا (1907)."),
+mq("e2","Nightingale established the first nursing philosophy based on health:",["Maintenance and restoration","Prevention only","Diagnosis and treatment","Research only"],"فلسفتها قامت على حفظ الصحة واستعادتها."),
+mq("e3","Which term means a person is reasonably independent and self-governing in decision making and practice?",["Autonomy","Accountability","Advocacy","Altruism"],"الاستقلالية (Autonomy) هي الحكم الذاتي في القرار والممارسة."),
+TF("e6","According to universal precautions, used needles should be recapped, bent or broken after use.",false,"لا تُعاد تغطية الإبر ولا تُثنى ولا تُكسر."),
+TF("e7","Direct contact occurs when the infectious agent is carried on an inanimate object such as dirty eating utensils.",false,"هذا تلامس غير مباشر؛ المباشر جسم لجسم."),
+mq("e8","The single most important way to control the spread of infection is:",["Hand hygiene","Wearing a mask","Using antibiotics","Isolation rooms"],"نظافة اليدين أهم وسيلة للحد من انتشار العدوى."),
+mq("e9","Which of the following are signs of systemic infection?",["Fever and fatigue","Redness and swelling","Pain at the site","Wound drainage"],"الحمى والإرهاق أعراض عامة؛ الاحمرار والتورم موضعية."),
+TF("e10","The incubation period starts from the onset of nonspecific symptoms to specific symptoms of illness.",false,"فترة الحضانة من دخول الميكروب حتى أول أعراض؛ ما ذُكر هو الفترة البادرية."),
+TF("e11","Sharps management is not important for preventing needlestick injuries.",false,"إدارة الأدوات الحادة أساسية لمنع وخزات الإبر."),
+TF("e12","Hospital waste is a potential reservoir of pathogens and requires safe disposal.",true,"نفايات المستشفى مستودع محتمل للميكروبات وتحتاج تخلصًا آمنًا."),
+TF("e13","Cleaning is a critical step in breaking the chain of infection.",true,"التنظيف شرط قبل التطهير والتعقيم ويكسر سلسلة العدوى."),
+TF("e14","Hand hygiene is required before and after contact with each patient.",true,"تُغسل اليدان قبل كل مريض وبعده."),
+mq("e15","Which term means the nurse is responsible, professionally and legally, for the quality of care provided?",["Accountability","Autonomy","Advocacy","Altruism"],"المساءلة هي المسؤولية المهنية والقانونية."),
+mq("e16","The absence of pathogenic microorganisms is called:",["Asepsis","Antisepsis","Sterilization","Disinfection"],"اللاتلوث (Asepsis) هو غياب الكائنات الممرضة."),
+TF("e17","Surgical asepsis is a clean technique used to reduce and prevent the spread of microorganisms.",false,"هذا وصف التعقيم الطبي؛ الجراحي يزيل كل الكائنات والأبواغ."),
+TF("e18","Disinfection destroys all forms of microorganisms including spores.",false,"التطهير لا يضمن القضاء على الأبواغ؛ التعقيم يفعل."),
+mq("e19","Who was concerned with relationships between cultures and races?",["Mary Mahoney","Florence Nightingale","Mary Adelaide Nutting","Rufaidah bint Sa'ad"],"ماري ماهوني نبّهت إلى احترام التنوع الثقافي."),
+mq("e20","The need to feel respected and valued by others is central to which level?",["Esteem","Physiological","Safety","Self-actualization"],"الاحترام والتقدير من حاجات تقدير الذات."),
+mq("e21","Which of the following is an example of a pathogen?",["A virus","A urinary catheter","A sterile gown","Hand hygiene"],"الفيروس كائن دقيق يسبب المرض."),
+mq("e22","Which term describes where microorganisms normally live and survive?",["Reservoir","Portal of entry","Mode of transmission","Portal of exit"],"المستودع هو مكان حياة الميكروب وبقائه."),
+mq("e23","Which is a systemic manifestation of infection?",["Loss of appetite","Redness","Swelling","Wound drainage"],"فقدان الشهية عَرَض عام."),
+mq("e24","Which is a localized manifestation of infection?",["Swelling","Fever","Malaise","Nausea"],"التورم علامة موضعية."),
+mq("e25","Which process physically removes dirt, blood and organic material from an object?",["Cleaning","Disinfection","Sterilization","Medical asepsis"],"التنظيف إزالة فيزيائية بالماء والمنظفات."),
+mq("e27","Medical asepsis is also known as:",["Clean technique","Sterile technique","Surgical asepsis","Isolation"],"التعقيم الطبي هو التقنية النظيفة."),
+mq("e29","Which is an example of direct contact transmission?",["Kissing","Dirty eating utensils","A contaminated needle","Contaminated food"],"التلامس المباشر جسم لجسم كالتقبيل."),
+mq("e30","Which is an example of vehicle transmission?",["Contaminated food or water","Kissing","Sneezing near a patient","Dust particles in air"],"الوسيط الناقل: طعام أو ماء أو دم ملوث."),
+mq("e31","Which item protects the eyes from infectious splashes?",["Goggles or a face shield","Surgical mask","Sterile gloves","Gown"],"النظارات أو واقي الوجه تحمي العينين."),
+mq("e33","Which procedure requires surgical asepsis?",["Inserting a urinary catheter","Giving oral medication","Bed bath","Taking vital signs"],"القسطرة البولية تحتاج تقنية معقمة."),
+mq("e34","Which patient requires contact precautions?",["A patient with MRSA","A patient with influenza","A patient with tuberculosis","A patient with measles"],"MRSA يحتاج رداء وقفازات (تلامس)."),
+mq("e35","Which room condition is required for airborne isolation?",["Negative pressure room","Positive pressure room","Open door","Shared room"],"المحمول جوًا يحتاج غرفة ضغط سالب."),
+TF("e36","Infection occurs when pathogens invade the body and may produce disease.",true,"هذا تعريف العدوى."),
+TF("e37","Healthcare-associated infections were necessarily present before hospital admission.",false,"لم تكن موجودة ولا في فترة الحضانة عند الدخول."),
+TF("e38","A carrier may transmit pathogens despite showing no symptoms.",true,"الحامل بلا أعراض لكنه ينقل الميكروب."),
+TF("e39","Disinfection reliably destroys all bacterial endospores.",false,"التطهير لا يدمر الأبواغ بثقة."),
+TF("e40","Medical asepsis aims to reduce microorganisms and prevent their spread.",true,"هذا هدف التعقيم الطبي."),
+TF("e41","Surgical asepsis is required when inserting a urinary catheter.",true,"القسطرة البولية تحتاج تعقيمًا جراحيًا."),
+TF("e42","Standard precautions are applied only to patients with confirmed infectious diseases.",false,"تنطبق على جميع المرضى."),
+TF("e44","Droplet precautions may be required for a patient with influenza.",true,"الإنفلونزا تنتقل بالقطيرات."),
+TF("e45","Breaking any one link in the chain of infection can interrupt disease transmission.",true,"قطع أي حلقة يوقف الانتقال."),
+mq("e46","Nightingale established the first organized nursing training program at:",["St. Thomas' Hospital, London","Columbia University","A hospital in Crimea","A community college"],"مدرستها في مستشفى سانت توماس بلندن (1860)."),
+mq("e47","The first African-American professional nurse was:",["Mary Mahoney","Mary Adelaide Nutting","Florence Nightingale","Rufaidah bint Sa'ad"],"ماري ماهوني."),
+mq("e48","According to the ANA, nursing is:",["Protection, promotion and optimization of health, prevention of illness and injury, alleviation of suffering, and advocacy","Utilizing the patient's environment to assist recovery","Assisting the individual until he gains independence","Caring for the sick in hospitals only"],"تعريف ANA يشمل الحماية والتعزيز والوقاية وتخفيف المعاناة والدفاع."),
+mq("e49","The word nurse derives from a Latin word meaning:",["To nourish","To heal","To protect","To serve"],"تعني يغذّي."),
+mq("e50","Which is NOT a criterion of a profession?",["Maximizing financial profit","Specialized education","Code of ethics","Autonomy"],"الربح ليس معيارًا للمهنة."),
+mq("e52","Which ANA standard analyzes assessment data to determine diagnoses?",["Diagnosis","Assessment","Planning","Evaluation"],"في معيار التشخيص تحلل الممرضة البيانات."),
+mq("e53","Which pathway integrates clinical practice, leadership, community health and research?",["BSN","Diploma","ADN","Continuing education"],"البكالوريوس (BSN) جامعي أوسع."),
+mq("e54","Helping a client recognize and cope with stressful psychological or social problems is:",["Counseling","Advocacy","Caregiving","Accountability"],"هذا تعريف الإرشاد."),
+mq("e55","Nursing practice involves all of the following EXCEPT:",["Performing surgery","Promoting health","Preventing illness","Care of the dying"],"الجراحة ليست من مجالات التمريض الأربعة."),
+TF("e56","Florence Nightingale was the first practicing nurse epidemiologist.",true,"استعملت الإحصاء لإصلاح الصحة العامة."),
+TF("e57","Mary Mahoney brought awareness of cultural diversity and respect for the individual.",true,"ركزت على احترام الفرد أيًّا كانت خلفيته."),
+TF("e58","The associate degree in nursing (ADN) is a university-level program integrating leadership and research.",false,"هذا وصف BSN؛ ADN في كلية مجتمع."),
+TF("e59","Nursing is caring, an art, a science, client centered, holistic and adaptive.",true,"هذه سمات مشتركة لتعريفات التمريض."),
+TF("e60","A profession must be guided by certain rules, policies, or codes of ethics.",true,"مدونة الأخلاقيات من معايير المهنة."),
+TF("e61","Nurses provide care for three types of clients: individuals, families and communities.",true,"الأفراد والأسر والمجتمعات."),
+TF("e62","In the past, the patient's home was the main practice setting for most nurses.",false,"كانت المستشفى للرعاية الحادة هي الأساس.")
+].filter(Boolean);
+const lessonOK=k=>!!S.full[k],allOK=()=>Object.keys(LEC).every(lessonOK);
+function alt(q,r){const o=q.o0||q,b={id:o.id,f:o.f,x:o.x,r,o0:o,w:0};
+if(o.t==="mcq"){const c=o.o.find(v=>v[1])[0];
+if(r>=2&&c.length<=30)return Object.assign(b,{t:"type",s:o.s,ans:c});
+const w=shuf(o.o.filter(v=>!v[1]))[0][0],u=Math.random()<.5;
+return Object.assign(b,{t:"tf",s:o.s+"  →  "+(u?c:w),a:u})}
+if(o.t==="tf")return Object.assign(b,{t:"mcq",s:"Which statement is correct?",o:[["TRUE: "+o.s,o.a],["FALSE: "+o.s,!o.a]]});
+if(o.t==="fill"&&o.a.length===1)return Object.assign(b,{t:"mcq",s:o.s.replace("_","_____"),o:o.a.concat(o.d).map((w,i)=>[w,i===0])});
+return Object.assign({},o,{r,w:0})}
+function rType(q){shell('<p class="q">'+tm(q.s)+'</p><input id="ti" dir="ltr" autocomplete="off" style="width:100%;font:inherit;padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)" placeholder="اكتب الإجابة"><button class="btn" id="ck">تحقق</button><div id="r"></div>');
+$("ck").onclick=()=>{const n=x=>x.toLowerCase().replace(/[^a-z0-9α-ω]/g,""),ok=n($("ti").value)===n(q.ans);$("ti").disabled=true;$("ck").style.display="none";record(q,ok);
+$("r").innerHTML=(ok?"":'<p class="small" dir="ltr" style="text-align:left">Correct: '+esc(q.ans)+"</p>")+fb(q,ok);$("nx").onclick=next}}
+function runSet(k,m,items){cur=k;MODE=m;items.forEach(q=>q.w=0);queue=shuf([...items]);total=queue.length;res={right:0,errs:0,wrong:[]};next()}
+function startExam(){if(allOK())runSet("exam","exam",EXQ)}
+const _rec=record;
+record=function(q,ok){_rec(q,ok);if(MODE==="prac")return;const o=q.o0||q,r=q.r||0;
+if(!ok&&r===0)res.wrong.push(o);
+if(MODE==="exam"){const m=S.exm[o.id]||0;S.exm[o.id]=ok?Math.max(0,m-1):m+1;save();
+if(!ok&&r<2)queue.push(alt(o,m+1>=2?2:r+1))}};
+const _end=end;
+end=function(){if(MODE==="prac")return _end();
+if(MODE==="lesson"){const ok=!res.wrong.length;if(ok){S.full[cur]=1;save()}
+app.innerHTML='<div class="card"><h1>'+(ok?"درجة كاملة ✓":"لم تكتمل الدرجة")+"</h1><p>"+res.right+" من "+total+"</p>"+(ok?"":"<p>أخطأت في:</p><ul dir='ltr' style='text-align:left'>"+res.wrong.map(q=>"<li>"+esc(q.s)+"</li>").join("")+"</ul>")+'<button class="btn" id="a">'+(ok?"رجوع":"إعادة اختبار الدرس")+'</button><button class="btn g" id="b">القائمة</button></div>';
+$("a").onclick=()=>ok?menu(cur):runSet(cur,"lesson",[...LEC[cur].Q]);$("b").onclick=()=>menu(cur);return}
+const st=EXQ.filter(q=>(S.exm[q.id]||0)>=2);S.exbest=Math.max(S.exbest||0,res.right);save();
+app.innerHTML='<div class="card"><h1>نتيجة الاختبار الشامل</h1><p>الصحيح من أول محاولة: <b>'+res.right+" من "+total+"</b> ("+Math.round(res.right/total*100)+'%)</p><p class="small">أفضل نتيجة: '+S.exbest+"</p>"+(st.length?"<p>أسئلة متعثرة (أخطأت فيها مرتين فأكثر)، تعود بصيغة مختلفة:</p><ul dir='ltr' style='text-align:left'>"+st.map(q=>"<li>"+esc(q.s)+"</li>").join("")+"</ul>":"<p>لا أسئلة متعثرة 🎉</p>")+'<button class="btn" id="a">إعادة الاختبار</button><button class="btn g" id="b">القائمة</button></div>';
+$("a").onclick=startExam;$("b").onclick=home};
+const _menu=menu;
+menu=function(k){_menu(k);const t=$("tr");if(!t)return;const b=document.createElement("button");b.className="btn";b.textContent="اختبار الدرس (الدرجة الكاملة)"+(lessonOK(k)?" ✓":"");b.onclick=()=>runSet(k,"lesson",[...LEC[k].Q]);t.after(b)};
+const _home=home;
+home=function(){_home();const ok=allOK(),b=document.createElement("button");b.className="opt";
+b.innerHTML="<b>الاختبار الشامل</b> <span class='small'>"+(ok?"مفتوح ✓":"🔒 يفتح بعد الدرجة الكاملة في كل درس. المتبقي: "+Object.keys(LEC).filter(k=>!lessonOK(k)).map(k=>LEC[k].t).join("، "))+"</span>";
+b.onclick=startExam;app.append(b)};
+
+home();
+</script></body></html>
